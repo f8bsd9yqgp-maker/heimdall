@@ -30,6 +30,7 @@ export interface KanbanBoardProps extends React.HTMLAttributes<HTMLDivElement> {
   cards: KanbanCard[]
   selectedId?: string
   onSelectCard?: (cardId: string) => void
+  /** Zero-based final position after removing the moved card from its source column. */
   onMoveCard: (cardId: string, toColumnId: string, index: number) => void
   renderCard?: (card: KanbanCard, isSelected: boolean) => React.ReactNode
 }
@@ -319,8 +320,14 @@ export const KanbanBoard = React.forwardRef<HTMLDivElement, KanbanBoardProps>(
           if (toColumn && fromColumn) {
             const card = cards.find((c) => c.id === state.cardId)
             if (card) {
-              onMoveCard(state.cardId, hoveredColumnId, insertionIndex)
-              announceMove(card.title, toColumn.title, insertionIndex)
+              // The rendered source card still occupies its old DOM slot.
+              // Normalize downward same-column drops to their final index.
+              const finalIndex = hoveredColumnId === state.sourceColumnId &&
+                insertionIndex > state.sourceIndex
+                  ? insertionIndex - 1
+                  : insertionIndex
+              onMoveCard(state.cardId, hoveredColumnId, finalIndex)
+              announceMove(card.title, toColumn.title, finalIndex)
             }
           }
         }
