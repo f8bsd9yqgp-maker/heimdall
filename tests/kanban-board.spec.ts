@@ -152,6 +152,30 @@ test.describe("integration: KanbanBoard Component", () => {
     });
   });
 
+  test.describe("Pointer Drag & Drop", () => {
+    test("downward pointer drag uses the final index", async ({ page }) => {
+      const column = page.locator('.kanban-column').first();
+      const cards = column.locator('.kanban-card');
+      const titles = cards.locator('.kanban-card__title');
+      const original = await titles.allTextContents();
+      expect(original.length).toBeGreaterThanOrEqual(3);
+
+      const first = await cards.nth(0).boundingBox();
+      const third = await cards.nth(2).boundingBox();
+      expect(first).not.toBeNull();
+      expect(third).not.toBeNull();
+      // Drop before the third card, after the second: final index 1.
+      await page.mouse.move(first!.x + first!.width / 2, first!.y + first!.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(third!.x + third!.width / 2, third!.y + 2, { steps: 8 });
+      await page.mouse.up();
+
+      await expect(titles).toHaveText([original[1], original[0], ...original.slice(2)]);
+      await expect(page.locator('.kanban-board__live-region'))
+        .toContainText('at position 2');
+    });
+  });
+
   test.describe("Visual Regression - Light Canvas", () => {
     test("should match default state snapshot", async ({ page }) => {
       await freezeAnimations(page);
